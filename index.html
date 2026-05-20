@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사진 및 미션 내용 통합 빙고 기록부</title>
     <link rel="apple-touch-icon" href="app-icon.png">
     <link rel="icon" href="app-icon.png">
+    <title>사진 인증 빙고 및 미니 게임 시스템</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
 
@@ -16,15 +16,31 @@
             padding: 15px; 
             background-color: #fff9e6; 
             color: #5d4037; 
+            touch-action: pan-y;
         }
         
         h2 {
-            font-size: 32px;
+            font-size: 30px;
             color: #ff8a80;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-            margin-top: 30px;
-            margin-bottom: 30px;
+            margin-top: 10px;
+            margin-bottom: 20px;
         }
+
+        .controls { margin-bottom: 20px; display: flex; justify-content: center; gap: 10px; }
+        button.action-btn { 
+            font-family: 'Jua', sans-serif;
+            font-size: 15px; 
+            padding: 8px 12px; 
+            border: 2px solid #ffb6c1;
+            border-radius: 20px; 
+            background-color: #ffe4e1;
+            color: #5d4037;
+            cursor: pointer;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        button.action-btn:hover { background-color: #ffb6c1; transform: translateY(-2px); }
 
         .grid {
             display: grid;
@@ -32,7 +48,7 @@
             gap: 12px;
             max-width: 500px; 
             margin: 0 auto;
-            position: relative; /* 빨간 선이 위치할 기준점 */
+            position: relative;
         }
         
         .cell {
@@ -45,22 +61,18 @@
             justify-content: center;
             cursor: pointer;
             background-color: #ffffff;
-            font-size: clamp(14px, 4vw, 20px); 
+            font-size: clamp(12px, 3.5vw, 18px); 
             color: #ff8a80;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            padding: 8px;
+            padding: 6px;
             box-sizing: border-box;
             word-break: keep-all; 
             line-height: 1.2;
             overflow: hidden;
         }
         
-        .cell:hover { 
-            background-color: #fff0f5; 
-            transform: translateY(-3px); 
-            box-shadow: 0 6px 10px rgba(0,0,0,0.1);
-        }
+        .cell:hover { background-color: #fff0f5; transform: translateY(-3px); box-shadow: 0 6px 10px rgba(0,0,0,0.1); }
         
         @keyframes stampDrop {
             0% { transform: scale(3) rotate(-10deg); opacity: 0; }
@@ -68,166 +80,95 @@
             100% { transform: scale(1) rotate(0deg); opacity: 0.9; }
         }
 
-        .stamp-img {
-            position: absolute;
-            width: 85%;
-            height: 85%;
-            pointer-events: none;
-            opacity: 0; 
-            animation: stampDrop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            z-index: 5; 
-        }
-        
-        .cell.certified span {
-            position: relative;
-            z-index: 1;
-            color: rgba(255, 138, 128, 0.5); 
-        }
+        .stamp-img { position: absolute; width: 85%; height: 85%; pointer-events: none; opacity: 0; animation: stampDrop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; z-index: 5; }
+        .cell.certified span { position: relative; z-index: 1; color: rgba(255, 138, 128, 0.5); }
 
-        /* ----- 빨간색 줄 긋기(Strike Line) 디자인 영역 ----- */
-        .strike-line {
-            position: absolute;
-            background-color: rgba(220, 20, 60, 0.85); /* 크림슨 레드(진한 빨강) */
-            border-radius: 10px;
-            z-index: 15;
-            pointer-events: none; /* 선이 모달창 터치를 방해하지 않음 */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        /* 가로줄 */
+        .strike-line { position: absolute; background-color: rgba(220, 20, 60, 0.85); border-radius: 10px; z-index: 15; pointer-events: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .strike-row { left: 0; height: 8px; transform: translateY(-50%); animation: drawLineX 0.4s ease-out forwards; }
-        .strike-pos-0.strike-row { top: 12.5%; }
-        .strike-pos-1.strike-row { top: 37.5%; }
-        .strike-pos-2.strike-row { top: 62.5%; }
-        .strike-pos-3.strike-row { top: 87.5%; }
-
-        /* 세로줄 */
+        .strike-pos-0.strike-row { top: 12.5%; } .strike-pos-1.strike-row { top: 37.5%; } .strike-pos-2.strike-row { top: 62.5%; } .strike-pos-3.strike-row { top: 87.5%; }
         .strike-col { top: 0; width: 8px; transform: translateX(-50%); animation: drawLineY 0.4s ease-out forwards; }
-        .strike-pos-0.strike-col { left: 12.5%; }
-        .strike-pos-1.strike-col { left: 37.5%; }
-        .strike-pos-2.strike-col { left: 62.5%; }
-        .strike-pos-3.strike-col { left: 87.5%; }
-
-        /* 대각선 */
+        .strike-pos-0.strike-col { left: 12.5%; } .strike-pos-1.strike-col { left: 37.5%; } .strike-pos-2.strike-col { left: 62.5%; } .strike-pos-3.strike-col { left: 87.5%; }
         .strike-diag { height: 8px; top: 0; animation: drawLineDiag 0.4s ease-out forwards; }
         .strike-pos-1.strike-diag { left: 0; transform-origin: top left; transform: rotate(45deg) translateY(-50%); }
         .strike-pos-2.strike-diag { right: 0; transform-origin: top right; transform: rotate(-45deg) translateY(-50%); }
 
         @keyframes drawLineX { from { width: 0; } to { width: 100%; } }
         @keyframes drawLineY { from { height: 0; } to { height: 100%; } }
-        /* 1:1 직각삼각형의 빗변 길이에 해당하는 141.4% 산출 적용 */
         @keyframes drawLineDiag { from { width: 0; } to { width: 141.4%; } }
-        /* -------------------------------------------------- */
 
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.4); 
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        #uploadModal .modal-content {
-            background: #ffffff;
-            padding: 30px 20px;
-            border-radius: 25px; 
-            border: 4px solid #ffb6c1;
-            width: 80%;
-            max-width: 300px;
-            text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        
-        #photoViewModal .modal-content {
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 25px; 
-            border: 4px solid #ffb6c1;
-            width: 90%;
-            max-width: 500px; 
-            text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #ffffff; padding: 20px; border-radius: 25px; border: 4px solid #ffb6c1; width: 90%; max-width: 500px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-content h3 { margin-top: 0; color: #ff8a80; font-size: 24px; }
         .modal-content p { margin-bottom: 20px; color: #5d4037; font-size: 16px; word-break: keep-all; white-space: pre-line; }
         
-        #photoViewerDesc {
-            margin-top: 15px; 
-            margin-bottom: 20px;
-            background-color: #fff0f5; 
-            padding: 15px;
-            border-radius: 12px;
-            color: #5d4037;
-            font-size: 15px;
-            text-align: left; 
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .modal-content input[type="file"] { 
-            margin-bottom: 20px; 
-            width: 100%; 
-            font-family: 'Jua', sans-serif;
-            color: #5d4037;
-        }
-        
-        #photoViewerImage {
-            width: 100%;
-            max-height: 50vh; 
-            object-fit: contain; 
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .close-btn { 
-            background: #ffb6c1; 
-            color: white; 
-            border: none; 
-            padding: 10px 20px; 
-            border-radius: 15px; 
-            font-size: 16px;
-            cursor: pointer;
-        }
+        #photoViewerDesc { margin-top: 15px; margin-bottom: 20px; background-color: #fff0f5; padding: 15px; border-radius: 12px; color: #5d4037; font-size: 15px; text-align: left; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .modal-content input[type="file"] { margin-bottom: 20px; width: 100%; font-family: 'Jua', sans-serif; color: #5d4037; }
+        #photoViewerImage { width: 100%; max-height: 50vh; object-fit: contain; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .close-btn { background: #ffb6c1; color: white; border: none; padding: 10px 20px; border-radius: 15px; font-size: 16px; cursor: pointer; }
         .close-btn:hover { background: #ff8a80; }
 
-        #bingoCelebration {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 249, 230, 0.95);
-            z-index: 2000;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
+        #bingoCelebration { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 249, 230, 0.95); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        .bingo-text { font-size: clamp(60px, 15vw, 120px); color: #ff8a80; font-weight: bold; text-shadow: 4px 4px 0px #ffffff, 8px 8px 0px #ffb6c1; animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn { 0% { transform: scale(0) rotate(-15deg); opacity: 0; } 80% { transform: scale(1.1) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
 
-        .bingo-text {
-            font-size: clamp(60px, 15vw, 120px);
-            color: #ff8a80;
-            font-weight: bold;
-            text-shadow: 4px 4px 0px #ffffff, 8px 8px 0px #ffb6c1;
-            animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
+        .game-icons-wrapper { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
+        .square-game-icon { display: none; width: 80px; height: 80px; background-color: #e3f2fd; border: 3px dashed #64b5f6; border-radius: 15px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s; flex-direction: column; justify-content: center; align-items: center; }
+        .square-game-icon.active { display: flex; }
+        .square-game-icon:hover { transform: scale(1.1); }
+        .icon-emoji { font-size: 32px; }
+        .icon-text { font-size: 12px; color: #1976d2; font-weight: bold; margin-top: 5px; }
 
-        @keyframes popIn {
-            0% { transform: scale(0) rotate(-15deg); opacity: 0; }
-            80% { transform: scale(1.1) rotate(5deg); opacity: 1; }
-            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        canvas { background-color: #f1f8e9; border: 2px solid #333; border-radius: 8px; display: block; margin: 0 auto 15px auto; max-width: 100%; touch-action: none; }
+
+        /* 초기 조 선택 화면 스타일 */
+        #teamSelectScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff9e6;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000;
         }
+        .team-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
+        .team-btn {
+            font-family: 'Jua', sans-serif; font-size: 24px; padding: 20px 40px; border: 4px solid #ffb6c1;
+            border-radius: 20px; background-color: #ffffff; color: #ff8a80; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .team-btn:hover { background-color: #ffe4e1; transform: translateY(-3px); }
     </style>
 </head>
 <body>
-    <h2>📷 미션 인증 빙고 📷</h2>
+
+    <div id="teamSelectScreen">
+        <h2>어느 조에 소속되어 있습니까?</h2>
+        <div class="team-btn-group">
+            <button class="team-btn" onclick="selectTeam(1)">1조</button>
+            <button class="team-btn" onclick="selectTeam(2)">2조</button>
+            <button class="team-btn" onclick="selectTeam(3)">3조</button>
+            <button class="team-btn" onclick="selectTeam(4)">4조</button>
+        </div>
+    </div>
+
+    <h2 id="mainHeader">📷 미션 인증 빙고 📷</h2>
+
+    <div class="controls">
+        <button class="action-btn" onclick="showTeamSelect()">조 다시 선택</button>
+        <button class="action-btn" onclick="resetRecords()">현재 조 기록 초기화</button>
+    </div>
 
     <div class="grid" id="bingoGrid"></div>
+
+    <div class="game-icons-wrapper">
+        <div id="blockGameIcon" class="square-game-icon" onclick="openBlockGame()">
+            <div class="icon-emoji">🧱</div>
+            <div class="icon-text">블록 깨기</div>
+        </div>
+        <div id="fortressGameIcon" class="square-game-icon" onclick="openFortressGame()">
+            <div class="icon-emoji">🚀</div>
+            <div class="icon-text">포트리스</div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="uploadModal">
         <div class="modal-content">
             <h3 id="modalTitle">미션 키워드</h3>
-            <p id="modalDesc">상세 미션 내용이 여기에 출력됩니다.</p>
+            <p id="modalDesc"></p>
             <input type="file" id="modalFileInput" accept="image/*">
             <button class="close-btn" onclick="closeUploadModal()">닫기</button>
         </div>
@@ -247,87 +188,192 @@
         <p style="font-size: 20px; color: #5d4037; margin-top: 30px;">축하합니다! 미션을 달성했습니다.<br>(화면을 클릭하면 닫힙니다)</p>
     </div>
 
+    <div class="modal-overlay" id="blockGameModal">
+        <div class="modal-content">
+            <h3 style="color: #1976d2; margin-top: 0;">블록 깨기 게임</h3>
+            <canvas id="blockCanvas" width="320" height="400"></canvas>
+            <button class="close-btn" style="background: #64b5f6;" onclick="closeBlockGame()">종료</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="fortressGameModal">
+        <div class="modal-content">
+            <h3 style="color: #d32f2f; margin-top: 0;">미니 포트리스</h3>
+            <p style="font-size:12px; margin-bottom:5px;">화면 드래그: 각도 조절 | 길게 터치/클릭: 파워 충전 후 발사</p>
+            <canvas id="fortressCanvas" width="320" height="300"></canvas>
+            <button class="close-btn" style="background: #e57373;" onclick="closeFortressGame()">종료</button>
+        </div>
+    </div>
+
     <script>
         const BINGO_SIZE = 16; 
+        let currentTeamNum = null;
+        let currentLayout = [];
         
-        const bingoMissions = [
-            { keyword: "열전도율", desc: "4개의 금속재료(알루미늄, 스테인리스 스틸, 구리, 무쇠솥 등)의 열전도율 차이를 체험하고, 손바닥 체온이 금속에 전달되며 일어나는 열화상 카메라의 이미지 변화를 사진으로 찍어주세요" },
-            { keyword: "반사와 굴절", desc: "오목 거울과 볼록 거울을 통해 거울의 반사와 굴절을 이해할 수 있는 장소에서 거울의 굴곡과 경사도로 인해 왜곡되어 보이는 자신의 모습을 사진으로 찍어오세요" },
-            { keyword: "판의 경계", desc: "판의 경계에서 일어나는 지각 활동을 체험할 수 있는 장소에서 사진을 찍어주세요" },
-            { keyword: "해들리 순환", desc: "대기 대순환 중 해들리 순환에 의해 생긴 바람으로 북반구에서는 북동쪽에서 남서쪽으로 불고, 남반구에서는 남동쪽에서 북서쪽으로 부는 바람에 대해서 알 수 있는 장소에서 사진을 찍어오세요" },
-            { keyword: "원심력", desc: "회전속도와 원심력의 관계를 체험할 수 있는 장소의 사진을 찍어오세요" },
-            { keyword: "자이로 효과", desc: "두 회전 바퀴가 회전 시, 중심 추 이동과 상판 회전에 따른 세차운동을 비교하도록 구성해 자이로 효과와 각운동량 보존 원리를 체험할 수 있는 장소에서 사진을 찍어주세요" },
-            { keyword: "작용반작용", desc: "공기부양으로 마찰이 거의 없는 상태를 만들고 작은 힘으로 이동하는 체험을 통해 마찰과 관성운동, 작용반작용의 원리를 알 수 있는 장소에서 사진을 찍어오세요" },
-            { keyword: "베르누이 현상", desc: "빠른 공기 흐름 속에 위치한 공이 공중에 떠 있는 베르누이 현상을 관찰하고, 다채로운 조명 속에서 떠있는 공의 움직임을 사진으로 찍어오세요" },
-            { keyword: "빛의 분산", desc: "프리즘 큐브를 통과한 빛이 벽면에 펼쳐지는 장면을 관찰하며, 빛의 굴절, 분산과 입사각 변화에 따른 색 분리 원리를 감각적으로 체험할 수 있는 곳에서 사진을 찍어오세요" },
-            { keyword: "대표 천문도", desc: "우리나라의 대표적인 천문도 앞에서 사진을 찍어주세요" },
-            { keyword: "세종시대 수위계", desc: "하천의 물 높이를 보고 가뭄과 홍수를 예측하는 도구이자 세종시대 획기적인 발명품을 찾아 사진을 찍어오세요" },
-            { keyword: "동궐도", desc: "1830년 이전에 경복궁의 동쪽에 위치한 창덕궁과 창경궁을 그린 그림 앞에서 사진을 찍어오세요" },
-            { keyword: "국가표준시계", desc: "1434년 장영실에 의해 완성되어 경복궁 보루각에 설치되었으며 조선의 새로운 국가표준시계로 사용되었던 장치를 찾아 사진으로 찍어오세요" },
-            { keyword: "최고 금속활자본", desc: "1377년 청주 흥덕사에 간행된 세계에서 가장 오래된 금속활자 인쇄물을 사진으로 찍어오세요" },
-            { keyword: "분첩절첩식 지도", desc: "김정호가 1861년에 만든 분첩절첩식 지도 앞에 앉아 사진을 찍어오세요" },
-            { keyword: "이동식 발사 무기", desc: "1452년 개발된 이동식 발사 무기로 행주산성 전투를 승리로 이끄는데 결정적인 역할을 한 화학병기의 사진을 찍어오세요" }
+        // 전체 24개 미션 풀 구성 (기존 16개 + 신규 8개)
+        const allMissionsPool = [
+            { id: "M01", keyword: "열전도율", desc: "4개의 금속재료(알루미늄, 스테인리스 스틸, 구리, 무쇠솥 등)의 열전도율 차이를 체험하고, 손바닥 체온이 금속에 전달되며 일어나는 열화상 카메라의 이미지 변화를 사진으로 찍어주세요" },
+            { id: "KEY_BLOCK", keyword: "반사와 굴절", desc: "오목 거울과 볼록 거울을 통해 거울의 반사와 굴절을 이해할 수 있는 장소에서 거울의 굴곡과 경사도로 인해 왜곡되어 보이는 자신의 모습을 사진으로 찍어오세요" },
+            { id: "M03", keyword: "판의 경계", desc: "판의 경계에서 일어나는 지각 활동을 체험할 수 있는 장소에서 사진을 찍어주세요" },
+            { id: "M04", keyword: "해들리 순환", desc: "대기 대순환 중 해들리 순환에 의해 생긴 바람으로 북반구에서는 북동쪽에서 남서쪽으로 불고, 남반구에서는 남동쪽에서 북서쪽으로 부는 바람에 대해서 알 수 있는 장소에서 사진을 찍어오세요" },
+            { id: "M05", keyword: "원심력", desc: "회전속도와 원심력의 관계를 체험할 수 있는 장소의 사진을 찍어오세요" },
+            { id: "M06", keyword: "자이로 효과", desc: "두 회전 바퀴가 회전 시, 중심 추 이동과 상판 회전에 따른 세차운동을 비교하도록 구성해 자이로 효과와 각운동량 보존 원리를 체험할 수 있는 장소에서 사진을 찍어주세요" },
+            { id: "M07", keyword: "작용반작용", desc: "공기부양으로 마찰이 거의 없는 상태를 만들고 작은 힘으로 이동하는 체험을 통해 마찰과 관성운동, 작용반작용의 원리를 알 수 있는 장소에서 사진을 찍어오세요" },
+            { id: "M08", keyword: "베르누이 현상", desc: "빠른 공기 흐름 속에 위치한 공이 공중에 떠 있는 베르누이 현상을 관찰하고, 다채로운 조명 속에서 떠있는 공의 움직임을 사진으로 찍어오세요" },
+            { id: "M09", keyword: "빛의 분산", desc: "프리즘 큐브를 통과한 빛이 벽면에 펼쳐지는 장면을 관찰하며, 빛의 굴절, 분산과 입사각 변화에 따른 색 분리 원리를 감각적으로 체험할 수 있는 곳에서 사진을 찍어오세요" },
+            { id: "M10", keyword: "대표 천문도", desc: "우리나라의 대표적인 천문도 앞에서 사진을 찍어주세요" },
+            { id: "M11", keyword: "세종시대 수위계", desc: "하천의 물 높이를 보고 가뭄과 홍수를 예측하는 도구이자 세종시대 획기적인 발명품을 찾아 사진을 찍어오세요" },
+            { id: "M12", keyword: "동궐도", desc: "1830년 이전에 경복궁의 동쪽에 위치한 창덕궁과 창경궁을 그린 그림 앞에서 사진을 찍어오세요" },
+            { id: "M13", keyword: "국가표준시계", desc: "1434년 장영실에 의해 완성되어 경복궁 보루각에 설치되었으며 조선의 새로운 국가표준시계로 사용되었던 장치를 찾아 사진으로 찍어오세요" },
+            { id: "M14", keyword: "최고 금속활자본", desc: "1377년 청주 흥덕사에 간행된 세계에서 가장 오래된 금속활자 인쇄물을 사진으로 찍어오세요" },
+            { id: "M15", keyword: "분첩절첩식 지도", desc: "김정호가 1861년에 만든 분첩절첩식 지도 앞에 앉아 사진을 찍어오세요" },
+            { id: "KEY_FORTRESS", keyword: "이동식 발사 무기", desc: "1452년 개발된 이동식 발사 무기로 행주산성 전투를 승리로 이끄는데 결정적인 역할을 한 화학병기의 사진을 찍어오세요" },
+            { id: "M17", keyword: "전기에너지", desc: "테슬라코일, 방전 사다리, 반데그라프, 번개실험으로 전기에너지를 체험하고 사진을 찍어주세요" },
+            { id: "M18", keyword: "레저스포츠", desc: "정해진 시간 내에 9개의 스팟을 점령하는 방식의 미래형 레저스포츠를 체험하고 사진을 찍어주세요" },
+            { id: "M19", keyword: "클라우디오사우루스", desc: "마다가스카르에서 왔어요. Claudiosaurus germaini와 사진을 찍어주세요" },
+            { id: "M20", keyword: "리바노프리스티스", desc: "레바논에서 왔어요. Libanopristis hiram와 사진을 찍어주세요" },
+            { id: "M21", keyword: "캄포데시엘로 운석", desc: "태양계 탄생의 증거들, 캄포데시엘로 운석 앞에서 사진을 찍어오세요" },
+            { id: "M22", keyword: "퇴적 암석", desc: "남세균이 얕은 바다 바닥에 만든 끈적끈적하고 얇은 층에 작은 퇴적물 입자들이 들러부터 층을 이루어 만들어진 암석 앞에서 사진을 찍어오세요" },
+            { id: "M23", keyword: "최초 동물 화석", desc: "선캄프리아시대 빙하기가 끝난 후 약 6억년 전 전세계의 바다에 서식했던 다세포 생물의 화석으로 최초의 동물 화석 기록으로 추정되는 화석의 사진을 찍어오세요" },
+            { id: "M24", keyword: "코끼리 조상", desc: "몸의 높이가 4미터 정도 몸무게가 8톤에 이르며 온몸이 털로 덮여있고 약 5백만년 전에 나타나 5천년 전쯤 멸종했던 현생 코끼리 조상의 화석에서 사진을 찍어오세요" }
         ];
 
-        // 빙고 완성 조건을 2차원 배열 객체로 통합 정의 (선 긋기 속성 포함)
         const winningLines = [
-            { indices: [0, 1, 2, 3], type: 'row', pos: 0 },
-            { indices: [4, 5, 6, 7], type: 'row', pos: 1 },
-            { indices: [8, 9, 10, 11], type: 'row', pos: 2 },
-            { indices: [12, 13, 14, 15], type: 'row', pos: 3 },
-            { indices: [0, 4, 8, 12], type: 'col', pos: 0 },
-            { indices: [1, 5, 9, 13], type: 'col', pos: 1 },
-            { indices: [2, 6, 10, 14], type: 'col', pos: 2 },
-            { indices: [3, 7, 11, 15], type: 'col', pos: 3 },
-            { indices: [0, 5, 10, 15], type: 'diag', pos: 1 },
-            { indices: [3, 6, 9, 12], type: 'diag', pos: 2 }
+            { indices: [0, 1, 2, 3], type: 'row', pos: 0 }, { indices: [4, 5, 6, 7], type: 'row', pos: 1 }, { indices: [8, 9, 10, 11], type: 'row', pos: 2 }, { indices: [12, 13, 14, 15], type: 'row', pos: 3 },
+            { indices: [0, 4, 8, 12], type: 'col', pos: 0 }, { indices: [1, 5, 9, 13], type: 'col', pos: 1 }, { indices: [2, 6, 10, 14], type: 'col', pos: 2 }, { indices: [3, 7, 11, 15], type: 'col', pos: 3 },
+            { indices: [0, 5, 10, 15], type: 'diag', pos: 1 }, { indices: [3, 6, 9, 12], type: 'diag', pos: 2 }
         ];
 
         const gridElement = document.getElementById('bingoGrid');
         const uploadModal = document.getElementById('uploadModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalDesc = document.getElementById('modalDesc');
         const modalFileInput = document.getElementById('modalFileInput');
-        
-        const photoViewModal = document.getElementById('photoViewModal');
-        const photoViewerTitle = document.getElementById('photoViewerTitle');
-        const photoViewerImage = document.getElementById('photoViewerImage');
-        const photoViewerDesc = document.getElementById('photoViewerDesc');
-        const bingoCelebration = document.getElementById('bingoCelebration');
+        const blockGameIcon = document.getElementById('blockGameIcon');
+        const fortressGameIcon = document.getElementById('fortressGameIcon');
         
         let currentCellIndex = null;
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (type === 'bounce') {
+                oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                oscillator.start(audioCtx.currentTime); oscillator.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'break') {
+                oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                oscillator.start(audioCtx.currentTime); oscillator.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'shoot') {
+                oscillator.type = 'sawtooth'; oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                oscillator.start(audioCtx.currentTime); oscillator.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+
+        // 배열 셔플 함수 (피셔-예이츠 알고리즘)
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // 조별 빙고판 생성 및 초기화
+        function initTeamBoard(teamNum) {
+            const layoutKey = `bingoLayout_Team${teamNum}`;
+            let storedLayout = localStorage.getItem(layoutKey);
+            
+            if (storedLayout) {
+                currentLayout = JSON.parse(storedLayout);
+            } else {
+                // 핵심 미션 2개 추출 보장
+                const keyMissions = allMissionsPool.filter(m => m.id === "KEY_BLOCK" || m.id === "KEY_FORTRESS");
+                const otherMissions = allMissionsPool.filter(m => m.id !== "KEY_BLOCK" && m.id !== "KEY_FORTRESS");
+                
+                // 나머지 14개를 무작위로 추출
+                const shuffledOthers = shuffleArray(otherMissions);
+                const selectedOthers = shuffledOthers.slice(0, 14);
+                
+                // 합친 후 다시 무작위 셔플하여 16칸 완성
+                const finalSelection = shuffleArray([...keyMissions, ...selectedOthers]);
+                
+                currentLayout = finalSelection;
+                localStorage.setItem(layoutKey, JSON.stringify(currentLayout));
+            }
+        }
+
+        function showTeamSelect() {
+            document.getElementById('teamSelectScreen').style.display = 'flex';
+        }
+
+        function selectTeam(teamNum) {
+            currentTeamNum = teamNum;
+            document.getElementById('teamSelectScreen').style.display = 'none';
+            document.getElementById('mainHeader').innerText = `📷 [${teamNum}조] 미션 인증 빙고 📷`;
+            initTeamBoard(teamNum);
+            renderBoard();
+        }
+
+        function loadData() {
+            if (!currentTeamNum) return [];
+            const data = localStorage.getItem(`bingoRecords_Team${currentTeamNum}`);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveData(data) {
+            if (!currentTeamNum) return;
+            localStorage.setItem(`bingoRecords_Team${currentTeamNum}`, JSON.stringify(data));
+        }
+
+        function resetRecords() {
+            if (!currentTeamNum) return;
+            if (confirm(`${currentTeamNum}조의 모든 사진과 빙고 기록을 초기화하시겠습니까? (미니게임 권한도 사라집니다)`)) {
+                localStorage.removeItem(`bingoRecords_Team${currentTeamNum}`);
+                renderBoard();
+                alert("기록이 완전히 초기화되었습니다.");
+            }
+        }
 
         function countBingoLines(record) {
             let count = 0;
             for (let i = 0; i < winningLines.length; i++) {
                 const [a, b, c, d] = winningLines[i].indices;
-                if (record[a] && record[b] && record[c] && record[d]) {
-                    count++;
-                }
+                if (record[a] && record[b] && record[c] && record[d]) count++;
             }
             return count;
-        }
-
-        function loadData() {
-            const data = localStorage.getItem('bingoRecords4x4_SinglePhotos');
-            return data ? JSON.parse(data) : [];
-        }
-
-        function saveData(data) {
-            localStorage.setItem('bingoRecords4x4_SinglePhotos', JSON.stringify(data));
         }
 
         function renderBoard() {
             const teamRecord = loadData();
             gridElement.innerHTML = '';
+            
+            blockGameIcon.classList.remove('active');
+            fortressGameIcon.classList.remove('active');
 
-            // 각 칸 렌더링
+            let blockIndex = -1;
+            let fortressIndex = -1;
+
             for (let i = 0; i < BINGO_SIZE; i++) {
+                const mission = currentLayout[i];
+                if (mission.id === "KEY_BLOCK") blockIndex = i;
+                if (mission.id === "KEY_FORTRESS") fortressIndex = i;
+
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 
                 const span = document.createElement('span');
-                span.innerText = bingoMissions[i].keyword;
+                span.innerText = mission.keyword;
                 cell.appendChild(span);
 
                 if (teamRecord[i]) {
@@ -342,11 +388,9 @@
                 } else {
                     cell.addEventListener('click', () => openUploadModal(i));
                 }
-
                 gridElement.appendChild(cell);
             }
 
-            // 달성한 빙고 라인 분석 및 선 긋기 그래픽 요소 렌더링
             for (let i = 0; i < winningLines.length; i++) {
                 const line = winningLines[i];
                 if (teamRecord[line.indices[0]] && teamRecord[line.indices[1]] && 
@@ -356,68 +400,57 @@
                     gridElement.appendChild(strike);
                 }
             }
+
+            // 조건 획득 상태 평가
+            if (blockIndex !== -1 && teamRecord[blockIndex]) blockGameIcon.classList.add('active'); 
+            if (fortressIndex !== -1 && teamRecord[fortressIndex]) fortressGameIcon.classList.add('active'); 
         }
 
         function openUploadModal(index) {
             currentCellIndex = index;
-            modalTitle.innerText = `✨ ${bingoMissions[index].keyword} ✨`;
-            modalDesc.innerText = bingoMissions[index].desc;
-            
+            const mission = currentLayout[index];
+            document.getElementById('modalTitle').innerText = `✨ ${mission.keyword} ✨`;
+            document.getElementById('modalDesc').innerText = mission.desc;
             modalFileInput.value = ''; 
             uploadModal.style.display = 'flex';
         }
 
-        function closeUploadModal() {
-            uploadModal.style.display = 'none';
-            currentCellIndex = null;
-        }
+        function closeUploadModal() { uploadModal.style.display = 'none'; currentCellIndex = null; }
         
         function openPhotoViewModal(base64String, index) {
-            photoViewerTitle.innerText = `📷 ${bingoMissions[index].keyword} 인증 완료 📷`;
-            photoViewerImage.src = base64String; 
-            photoViewerDesc.innerText = bingoMissions[index].desc;
-            
-            photoViewModal.style.display = 'flex';
+            const mission = currentLayout[index];
+            document.getElementById('photoViewerTitle').innerText = `📷 ${mission.keyword} 인증 완료 📷`;
+            document.getElementById('photoViewerImage').src = base64String; 
+            document.getElementById('photoViewerDesc').innerText = mission.desc;
+            document.getElementById('photoViewModal').style.display = 'flex';
         }
 
         function closePhotoViewModal() {
-            photoViewModal.style.display = 'none';
-            photoViewerImage.src = ''; 
-            photoViewerDesc.innerText = '';
+            document.getElementById('photoViewModal').style.display = 'none';
+            document.getElementById('photoViewerImage').src = ''; 
         }
 
-        function closeBingoCelebration() {
-            bingoCelebration.style.display = 'none';
-        }
+        function closeBingoCelebration() { document.getElementById('bingoCelebration').style.display = 'none'; }
 
         modalFileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file && currentCellIndex !== null) {
                 const reader = new FileReader();
-                
                 reader.onload = function(event) {
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         const MAX_SIZE = 800;
-                        let width = img.width;
-                        let height = img.height;
+                        let width = img.width, height = img.height;
 
                         if (width > height) {
-                            if (width > MAX_SIZE) {
-                                height *= MAX_SIZE / width;
-                                width = MAX_SIZE;
-                            }
+                            if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
                         } else {
-                            if (height > MAX_SIZE) {
-                                width *= MAX_SIZE / height;
-                                height = MAX_SIZE;
-                            }
+                            if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
                         }
                         
-                        canvas.width = width;
-                        canvas.height = height;
+                        canvas.width = width; canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         
                         const base64String = canvas.toDataURL('image/jpeg', 0.8);
@@ -425,20 +458,26 @@
                         
                         const previousBingoCount = countBingoLines(currentData);
                         
-                        currentData[currentCellIndex] = base64String;
+                        // 현재 배치도에서의 핵심 미션 인덱스 파악
+                        const bIdx = currentLayout.findIndex(m => m.id === "KEY_BLOCK");
+                        const fIdx = currentLayout.findIndex(m => m.id === "KEY_FORTRESS");
+                        const wasBlockUnlocked = (bIdx !== -1 && currentData[bIdx]);
+                        const wasFortressUnlocked = (fIdx !== -1 && currentData[fIdx]);
                         
+                        currentData[currentCellIndex] = base64String;
                         const newBingoCount = countBingoLines(currentData);
                         
-                        try {
-                            saveData(currentData);
-                        } catch (e) {
+                        try { saveData(currentData); } catch (e) {
                             alert("⚠️ 저장 공간이 부족하여 저장이 실패했습니다.");
-                            closeUploadModal();
-                            return;
+                            closeUploadModal(); return;
                         }
-                        
-                        if (newBingoCount >= 3 && previousBingoCount < 3) {
-                            bingoCelebration.style.display = 'flex';
+
+                        if (currentCellIndex === bIdx && !wasBlockUnlocked) {
+                            alert("'블록 깨기 게임'을 획득했습니다!");
+                        } else if (currentCellIndex === fIdx && !wasFortressUnlocked) {
+                            alert("'포트리스 게임'을 획득했습니다!");
+                        } else if (newBingoCount >= 3 && previousBingoCount < 3) {
+                            document.getElementById('bingoCelebration').style.display = 'flex';
                         } else {
                             alert("🎉 사진 인증이 성공적으로 완료되었습니다!");
                         }
@@ -448,12 +487,214 @@
                     };
                     img.src = event.target.result;
                 };
-                
                 reader.readAsDataURL(file);
             }
         });
 
-        renderBoard();
+        /* ==========================================
+           블록 깨기 게임 로직 
+           ========================================== */
+        const blockGameModal = document.getElementById('blockGameModal');
+        const bCanvas = document.getElementById('blockCanvas');
+        const bCtx = bCanvas.getContext('2d');
+        let bAnimFrame, isBlockGameRunning = false;
+        let bRadius = 8, bx, by, bdx, bdy, paddleW = 75, paddleH = 10, paddleX;
+        let bricks = [], bScore = 0;
+        const rCount = 5, cCount = 4, brW = 65, brH = 20, brPad = 10, brOffTop = 30, brOffLeft = 15;
+
+        function initBlockGame() {
+            bx = bCanvas.width / 2; by = bCanvas.height - 30; bdx = 3; bdy = -3; paddleX = (bCanvas.width - paddleW) / 2; bScore = 0; bricks = [];
+            for(let c=0; c<cCount; c++) { bricks[c] = []; for(let r=0; r<rCount; r++) bricks[c][r] = { x: 0, y: 0, status: 1 }; }
+        }
+
+        function blockMouseMove(e) { let rX = e.clientX - bCanvas.getBoundingClientRect().left; if(rX > 0 && rX < bCanvas.width) paddleX = rX - paddleW/2; }
+        function blockTouchMove(e) { e.preventDefault(); let rX = e.touches[0].clientX - bCanvas.getBoundingClientRect().left; if(rX > 0 && rX < bCanvas.width) paddleX = rX - paddleW/2; }
+
+        function blockCollision() {
+            for(let c=0; c<cCount; c++) {
+                for(let r=0; r<rCount; r++) {
+                    let b = bricks[c][r];
+                    if(b.status === 1) {
+                        if(bx > b.x && bx < b.x+brW && by > b.y && by < b.y+brH) {
+                            bdy = -bdy; b.status = 0; bScore++; playSound('break'); 
+                            if(bScore === rCount*cCount) {
+                                alert("모든 블록을 파괴했습니다! 게임 클리어!");
+                                isBlockGameRunning = false; initBlockGame();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function drawBlockGame() {
+            if (!isBlockGameRunning) return;
+            bCtx.clearRect(0, 0, bCanvas.width, bCanvas.height);
+            for(let c=0; c<cCount; c++) {
+                for(let r=0; r<rCount; r++) {
+                    if(bricks[c][r].status === 1) {
+                        let brX = (c*(brW+brPad))+brOffLeft, brY = (r*(brH+brPad))+brOffTop;
+                        bricks[c][r].x = brX; bricks[c][r].y = brY;
+                        bCtx.beginPath(); bCtx.rect(brX, brY, brW, brH); bCtx.fillStyle = "#4caf50"; bCtx.fill(); bCtx.closePath();
+                    }
+                }
+            }
+            bCtx.beginPath(); bCtx.arc(bx, by, bRadius, 0, Math.PI*2); bCtx.fillStyle = "#ff8a80"; bCtx.fill(); bCtx.closePath();
+            bCtx.beginPath(); bCtx.rect(paddleX, bCanvas.height - paddleH, paddleW, paddleH); bCtx.fillStyle = "#1976d2"; bCtx.fill(); bCtx.closePath();
+            bCtx.font = "16px Jua"; bCtx.fillStyle = "#5d4037"; bCtx.fillText("점수: " + bScore, 8, 20);
+            
+            blockCollision();
+
+            if(bx + bdx > bCanvas.width - bRadius || bx + bdx < bRadius) { bdx = -bdx; playSound('bounce'); }
+            if(by + bdy < bRadius) { bdy = -bdy; playSound('bounce'); } 
+            else if(by + bdy > bCanvas.height - bRadius) {
+                if(bx > paddleX && bx < paddleX + paddleW) { bdy = -bdy; playSound('bounce'); } 
+                else { alert("GAME OVER"); isBlockGameRunning = false; initBlockGame(); }
+            }
+
+            bx += bdx; by += bdy;
+            if (isBlockGameRunning) bAnimFrame = requestAnimationFrame(drawBlockGame);
+        }
+
+        function openBlockGame() {
+            bCanvas.addEventListener("mousemove", blockMouseMove); bCanvas.addEventListener("touchmove", blockTouchMove, { passive: false });
+            if (!audioCtx) audioCtx = new AudioContext();
+            blockGameModal.style.display = 'flex';
+            if (!isBlockGameRunning) { initBlockGame(); isBlockGameRunning = true; drawBlockGame(); }
+        }
+
+        function closeBlockGame() {
+            blockGameModal.style.display = 'none'; isBlockGameRunning = false; cancelAnimationFrame(bAnimFrame);
+            bCanvas.removeEventListener("mousemove", blockMouseMove); bCanvas.removeEventListener("touchmove", blockTouchMove);
+        }
+
+        /* ==========================================
+           포트리스 게임 로직 (무작위 표적 갱신 적용)
+           ========================================== */
+        const fortressModal = document.getElementById('fortressGameModal');
+        const fCanvas = document.getElementById('fortressCanvas');
+        const fCtx = fCanvas.getContext('2d');
+        let fAnimFrame, isFortressRunning = false;
+
+        let cannonAngle = 45, power = 0, isCharging = false;
+        let bullet = { active: false, x: 0, y: 0, vx: 0, vy: 0 };
+        const gravity = 0.2;
+        let target = { x: 260, y: 250, w: 40, h: 40 };
+
+        // 표적 무작위 생성 (크기 및 공중 배치)
+        function randomizeTarget() {
+            target.w = Math.floor(Math.random() * 30 + 20); // 크기 20px ~ 50px
+            target.h = target.w; // 정사각형 유지
+            // 화면 우측 절반 범위(120px ~ 가로끝)에서 생성되도록 X축 설정
+            target.x = 120 + Math.floor(Math.random() * (fCanvas.width - 120 - target.w));
+            // 바닥(290) 위로 공중 배치 허용 (Y축 50px ~ 바닥 사이)
+            target.y = 50 + Math.floor(Math.random() * (290 - target.h - 50)); 
+        }
+
+        function drawFortress() {
+            if (!isFortressRunning) return;
+            fCtx.clearRect(0, 0, fCanvas.width, fCanvas.height);
+            
+            fCtx.fillStyle = "#8d6e63"; fCtx.fillRect(0, 290, fCanvas.width, 10);
+            fCtx.fillStyle = "#ffb300"; fCtx.fillRect(target.x, target.y, target.w, target.h);
+            
+            fCtx.save();
+            fCtx.translate(30, 290);
+            fCtx.rotate(-cannonAngle * Math.PI / 180);
+            fCtx.fillStyle = "#37474f"; fCtx.fillRect(0, -5, 30, 10); 
+            fCtx.restore();
+            
+            fCtx.beginPath(); fCtx.arc(30, 290, 15, 0, Math.PI, true); 
+            fCtx.fillStyle = "#546e7a"; fCtx.fill();
+
+            fCtx.fillStyle = "#e0e0e0"; fCtx.fillRect(10, 10, 100, 10);
+            fCtx.fillStyle = "#d32f2f"; fCtx.fillRect(10, 10, (power / 30) * 100, 10);
+            
+            fCtx.font = "14px Jua"; fCtx.fillStyle = "#5d4037";
+            fCtx.fillText(`각도: ${Math.floor(cannonAngle)}°`, 10, 35);
+            fCtx.fillText(`파워: ${Math.floor(power)}`, 10, 55);
+
+            if (bullet.active) {
+                fCtx.beginPath(); fCtx.arc(bullet.x, bullet.y, 4, 0, Math.PI*2);
+                fCtx.fillStyle = "#d32f2f"; fCtx.fill();
+                
+                bullet.x += bullet.vx; bullet.y += bullet.vy; bullet.vy += gravity; 
+
+                if (bullet.x > target.x && bullet.x < target.x + target.w &&
+                    bullet.y > target.y && bullet.y < target.y + target.h) {
+                    playSound('break');
+                    alert("명중했습니다! 타겟 파괴 성공!");
+                    bullet.active = false;
+                    randomizeTarget(); // 명중 시 새로운 무작위 표적 생성
+                }
+
+                if (bullet.y > 290 || bullet.x > fCanvas.width) bullet.active = false;
+            } else if (isCharging) {
+                power += 0.5;
+                if (power > 30) power = 30; 
+            }
+
+            if (isFortressRunning) fAnimFrame = requestAnimationFrame(drawFortress);
+        }
+
+        function updateCannonAngle(clientX, clientY) {
+            const rect = fCanvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            const dx = x - 30; const dy = 290 - y; 
+            let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            if (angle > 90) angle = 90;
+            if (angle < 0) angle = 0;
+            cannonAngle = angle;
+        }
+
+        function handlePointerMove(e) {
+            e.preventDefault(); 
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } 
+            else { clientX = e.clientX; clientY = e.clientY; }
+            updateCannonAngle(clientX, clientY);
+        }
+
+        function handlePointerDown(e) {
+            e.preventDefault(); handlePointerMove(e);
+            if (!bullet.active) { isCharging = true; power = 0; }
+        }
+
+        function handlePointerUp(e) {
+            e.preventDefault();
+            if (isCharging && !bullet.active) {
+                isCharging = false; playSound('shoot');
+                bullet.active = true;
+                bullet.x = 30 + Math.cos(cannonAngle * Math.PI / 180) * 30; bullet.y = 290 - Math.sin(cannonAngle * Math.PI / 180) * 30;
+                bullet.vx = Math.cos(cannonAngle * Math.PI / 180) * (power / 2); bullet.vy = -Math.sin(cannonAngle * Math.PI / 180) * (power / 2);
+                power = 0;
+            }
+        }
+
+        function openFortressGame() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            
+            fCanvas.addEventListener("mousedown", handlePointerDown); fCanvas.addEventListener("mousemove", handlePointerMove);
+            fCanvas.addEventListener("mouseup", handlePointerUp); fCanvas.addEventListener("mouseleave", handlePointerUp);
+            fCanvas.addEventListener("touchstart", handlePointerDown, { passive: false }); fCanvas.addEventListener("touchmove", handlePointerMove, { passive: false });
+            fCanvas.addEventListener("touchend", handlePointerUp, { passive: false });
+            
+            fortressModal.style.display = 'flex';
+            if (!isFortressRunning) {
+                isFortressRunning = true; bullet.active = false; power = 0;
+                randomizeTarget(); // 최초 진입 시 무작위 생성
+                drawFortress();
+            }
+        }
+
+        function closeFortressGame() {
+            fortressModal.style.display = 'none'; isFortressRunning = false; cancelAnimationFrame(fAnimFrame);
+            fCanvas.removeEventListener("mousedown", handlePointerDown); fCanvas.removeEventListener("mousemove", handlePointerMove);
+            fCanvas.removeEventListener("mouseup", handlePointerUp); fCanvas.removeEventListener("mouseleave", handlePointerUp);
+            fCanvas.removeEventListener("touchstart", handlePointerDown); fCanvas.removeEventListener("touchmove", handlePointerMove); fCanvas.removeEventListener("touchend", handlePointerUp);
+        }
+
     </script>
 </body>
 </html>
