@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="apple-touch-icon" href="app-icon.png">
     <link rel="icon" href="app-icon.png">
-    <title>과학 빙고 게임</title>
+    <title>사진 인증 빙고 및 미니 게임 시스템</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
 
@@ -24,19 +24,7 @@
             color: #ff8a80;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
             margin-top: 10px;
-            margin-bottom: 10px;
-        }
-
-        .hidden-reward-notice {
-            font-size: 16px;
-            color: #d32f2f;
-            background-color: #ffebee;
-            border: 2px dashed #ff8a80;
-            border-radius: 12px;
-            display: inline-block;
-            padding: 8px 16px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .controls { margin-bottom: 20px; display: flex; justify-content: center; gap: 10px; }
@@ -53,6 +41,18 @@
             transition: all 0.2s ease;
         }
         button.action-btn:hover { background-color: #ffb6c1; transform: translateY(-2px); }
+
+        .hidden-reward-notice {
+            font-size: 16px;
+            color: #d32f2f;
+            background-color: #ffebee;
+            border: 2px dashed #ff8a80;
+            border-radius: 12px;
+            display: inline-block;
+            padding: 8px 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
 
         .grid {
             display: grid;
@@ -157,7 +157,7 @@
     </div>
 
     <h2 id="mainHeader">📷 미션 인증 빙고 📷</h2>
-    
+
     <div class="hidden-reward-notice">✨ 어떤 칸에는 히든 보상이 있으니까 찾아보세요! ✨</div>
 
     <div class="controls">
@@ -329,10 +329,7 @@
                 const hasBlock = currentLayout.some(m => m.id === "KEY_BLOCK");
                 const hasFortress = currentLayout.some(m => m.id === "KEY_FORTRESS");
                 const hasMeteor = currentLayout.some(m => m.id === "KEY_METEOR");
-                
-                if (hasBlock && hasFortress && hasMeteor) {
-                    needsNewLayout = false;
-                }
+                if (hasBlock && hasFortress && hasMeteor) needsNewLayout = false;
             }
 
             if (needsNewLayout) {
@@ -394,9 +391,7 @@
             fortressGameIcon.classList.remove('active');
             meteorGameIcon.classList.remove('active');
 
-            let blockIndex = -1;
-            let fortressIndex = -1;
-            let meteorIndex = -1;
+            let blockIndex = -1, fortressIndex = -1, meteorIndex = -1;
 
             for (let i = 0; i < BINGO_SIZE; i++) {
                 const mission = currentLayout[i];
@@ -417,7 +412,6 @@
                     stamp.src = 'stamp.png'; 
                     stamp.alt = '인증 완료';
                     cell.appendChild(stamp);
-                    
                     cell.addEventListener('click', () => openPhotoViewModal(teamRecord[i], i));
                 } else {
                     cell.addEventListener('click', () => openUploadModal(i));
@@ -670,7 +664,7 @@
         }
 
         /* ==========================================
-           운석 피하기 게임 로직 
+           운석 피하기 게임 로직 (난이도 상향 버전)
            ========================================== */
         const meteorModal = document.getElementById('meteorGameModal');
         const mCanvas = document.getElementById('meteorCanvas');
@@ -750,12 +744,15 @@
             mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
             mFrameCount++;
 
-            if (mFrameCount % 30 === 0) {
+            // [난이도 상향 알고리즘 적용 구간]
+            let currentSpawnRate = Math.max(8, 30 - Math.floor(mScore / 3));
+
+            if (mFrameCount % currentSpawnRate === 0) {
                 meteors.push({
                     x: Math.random() * mCanvas.width,
                     y: -20,
-                    radius: Math.random() * 10 + 5,
-                    speed: Math.random() * 3 + 2
+                    radius: Math.random() * 12 + 6, 
+                    speed: Math.random() * 4 + 4 + (mScore * 0.1)
                 });
             }
 
