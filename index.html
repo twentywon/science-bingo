@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="apple-touch-icon" href="app-icon.png">
     <link rel="icon" href="app-icon.png">
-    <title>과학 빙고</title>
+    <title>사진 인증 빙고 및 미니 게임 시스템</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
 
@@ -24,7 +24,19 @@
             color: #ff8a80;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
             margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .hidden-reward-notice {
+            font-size: 16px;
+            color: #d32f2f;
+            background-color: #ffebee;
+            border: 2px dashed #ff8a80;
+            border-radius: 12px;
+            display: inline-block;
+            padding: 8px 16px;
             margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .controls { margin-bottom: 20px; display: flex; justify-content: center; gap: 10px; }
@@ -111,16 +123,15 @@
         .bingo-text { font-size: clamp(60px, 15vw, 120px); color: #ff8a80; font-weight: bold; text-shadow: 4px 4px 0px #ffffff, 8px 8px 0px #ffb6c1; animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes popIn { 0% { transform: scale(0) rotate(-15deg); opacity: 0; } 80% { transform: scale(1.1) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
 
-        .game-icons-wrapper { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
-        .square-game-icon { display: none; width: 80px; height: 80px; background-color: #e3f2fd; border: 3px dashed #64b5f6; border-radius: 15px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s; flex-direction: column; justify-content: center; align-items: center; }
+        .game-icons-wrapper { display: flex; justify-content: center; gap: 10px; margin-top: 30px; flex-wrap: wrap; }
+        .square-game-icon { display: none; width: 75px; height: 75px; background-color: #e3f2fd; border: 3px dashed #64b5f6; border-radius: 15px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s; flex-direction: column; justify-content: center; align-items: center; }
         .square-game-icon.active { display: flex; }
         .square-game-icon:hover { transform: scale(1.1); }
-        .icon-emoji { font-size: 32px; }
-        .icon-text { font-size: 12px; color: #1976d2; font-weight: bold; margin-top: 5px; }
+        .icon-emoji { font-size: 28px; }
+        .icon-text { font-size: 11px; color: #1976d2; font-weight: bold; margin-top: 5px; }
 
         canvas { background-color: #f1f8e9; border: 2px solid #333; border-radius: 8px; display: block; margin: 0 auto 15px auto; max-width: 100%; touch-action: none; }
 
-        /* 초기 조 선택 화면 스타일 */
         #teamSelectScreen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff9e6;
             display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000;
@@ -146,6 +157,8 @@
     </div>
 
     <h2 id="mainHeader">📷 미션 인증 빙고 📷</h2>
+    
+    <div class="hidden-reward-notice">✨ 어떤 칸에는 히든 보상이 있으니까 찾아보세요! ✨</div>
 
     <div class="controls">
         <button class="action-btn" onclick="showTeamSelect()">조 다시 선택</button>
@@ -162,6 +175,10 @@
         <div id="fortressGameIcon" class="square-game-icon" onclick="openFortressGame()">
             <div class="icon-emoji">🚀</div>
             <div class="icon-text">포트리스</div>
+        </div>
+        <div id="meteorGameIcon" class="square-game-icon" onclick="openMeteorGame()">
+            <div class="icon-emoji">☄️</div>
+            <div class="icon-text">운석 피하기</div>
         </div>
     </div>
 
@@ -205,12 +222,20 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="meteorGameModal">
+        <div class="modal-content">
+            <h3 style="color: #f57c00; margin-top: 0;">운석 피하기</h3>
+            <p style="font-size:12px; margin-bottom:5px;">좌우로 드래그하여 하늘에서 떨어지는 운석을 피하세요.</p>
+            <canvas id="meteorCanvas" width="320" height="400" style="background-color: #263238;"></canvas>
+            <button class="close-btn" style="background: #ffb74d;" onclick="closeMeteorGame()">종료</button>
+        </div>
+    </div>
+
     <script>
         const BINGO_SIZE = 16; 
         let currentTeamNum = null;
         let currentLayout = [];
         
-        // 전체 24개 미션 풀 구성 (기존 16개 + 신규 8개)
         const allMissionsPool = [
             { id: "M01", keyword: "열전도율", desc: "4개의 금속재료(알루미늄, 스테인리스 스틸, 구리, 무쇠솥 등)의 열전도율 차이를 체험하고, 손바닥 체온이 금속에 전달되며 일어나는 열화상 카메라의 이미지 변화를 사진으로 찍어주세요" },
             { id: "KEY_BLOCK", keyword: "반사와 굴절", desc: "오목 거울과 볼록 거울을 통해 거울의 반사와 굴절을 이해할 수 있는 장소에서 거울의 굴곡과 경사도로 인해 왜곡되어 보이는 자신의 모습을 사진으로 찍어오세요" },
@@ -232,7 +257,7 @@
             { id: "M18", keyword: "레저스포츠", desc: "정해진 시간 내에 9개의 스팟을 점령하는 방식의 미래형 레저스포츠를 체험하고 사진을 찍어주세요" },
             { id: "M19", keyword: "클라우디오사우루스", desc: "마다가스카르에서 왔어요. Claudiosaurus germaini와 사진을 찍어주세요" },
             { id: "M20", keyword: "리바노프리스티스", desc: "레바논에서 왔어요. Libanopristis hiram와 사진을 찍어주세요" },
-            { id: "M21", keyword: "캄포데시엘로 운석", desc: "태양계 탄생의 증거들, 캄포데시엘로 운석 앞에서 사진을 찍어오세요" },
+            { id: "KEY_METEOR", keyword: "캄포데시엘로 운석", desc: "태양계 탄생의 증거들, 캄포데시엘로 운석 앞에서 사진을 찍어오세요" },
             { id: "M22", keyword: "퇴적 암석", desc: "남세균이 얕은 바다 바닥에 만든 끈적끈적하고 얇은 층에 작은 퇴적물 입자들이 들러부터 층을 이루어 만들어진 암석 앞에서 사진을 찍어오세요" },
             { id: "M23", keyword: "최초 동물 화석", desc: "선캄프리아시대 빙하기가 끝난 후 약 6억년 전 전세계의 바다에 서식했던 다세포 생물의 화석으로 최초의 동물 화석 기록으로 추정되는 화석의 사진을 찍어오세요" },
             { id: "M24", keyword: "코끼리 조상", desc: "몸의 높이가 4미터 정도 몸무게가 8톤에 이르며 온몸이 털로 덮여있고 약 5백만년 전에 나타나 5천년 전쯤 멸종했던 현생 코끼리 조상의 화석에서 사진을 찍어오세요" }
@@ -249,6 +274,7 @@
         const modalFileInput = document.getElementById('modalFileInput');
         const blockGameIcon = document.getElementById('blockGameIcon');
         const fortressGameIcon = document.getElementById('fortressGameIcon');
+        const meteorGameIcon = document.getElementById('meteorGameIcon');
         
         let currentCellIndex = null;
 
@@ -276,10 +302,14 @@
                 oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
                 gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
                 oscillator.start(audioCtx.currentTime); oscillator.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'explosion') {
+                oscillator.type = 'sawtooth'; oscillator.frequency.setValueAtTime(100, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.8, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                oscillator.start(audioCtx.currentTime); oscillator.stop(audioCtx.currentTime + 0.3);
             }
         }
 
-        // 배열 셔플 함수 (피셔-예이츠 알고리즘)
         function shuffleArray(array) {
             const arr = [...array];
             for (let i = arr.length - 1; i > 0; i--) {
@@ -289,34 +319,36 @@
             return arr;
         }
 
-        // 조별 빙고판 생성 및 초기화
         function initTeamBoard(teamNum) {
             const layoutKey = `bingoLayout_Team${teamNum}`;
             let storedLayout = localStorage.getItem(layoutKey);
+            let needsNewLayout = true;
             
             if (storedLayout) {
                 currentLayout = JSON.parse(storedLayout);
-            } else {
-                // 핵심 미션 2개 추출 보장
-                const keyMissions = allMissionsPool.filter(m => m.id === "KEY_BLOCK" || m.id === "KEY_FORTRESS");
-                const otherMissions = allMissionsPool.filter(m => m.id !== "KEY_BLOCK" && m.id !== "KEY_FORTRESS");
+                const hasBlock = currentLayout.some(m => m.id === "KEY_BLOCK");
+                const hasFortress = currentLayout.some(m => m.id === "KEY_FORTRESS");
+                const hasMeteor = currentLayout.some(m => m.id === "KEY_METEOR");
                 
-                // 나머지 14개를 무작위로 추출
+                if (hasBlock && hasFortress && hasMeteor) {
+                    needsNewLayout = false;
+                }
+            }
+
+            if (needsNewLayout) {
+                const keyMissions = allMissionsPool.filter(m => m.id === "KEY_BLOCK" || m.id === "KEY_FORTRESS" || m.id === "KEY_METEOR");
+                const otherMissions = allMissionsPool.filter(m => m.id !== "KEY_BLOCK" && m.id !== "KEY_FORTRESS" && m.id !== "KEY_METEOR");
+                
                 const shuffledOthers = shuffleArray(otherMissions);
-                const selectedOthers = shuffledOthers.slice(0, 14);
+                const selectedOthers = shuffledOthers.slice(0, 13);
                 
-                // 합친 후 다시 무작위 셔플하여 16칸 완성
-                const finalSelection = shuffleArray([...keyMissions, ...selectedOthers]);
-                
-                currentLayout = finalSelection;
+                currentLayout = shuffleArray([...keyMissions, ...selectedOthers]);
                 localStorage.setItem(layoutKey, JSON.stringify(currentLayout));
             }
         }
 
-        function showTeamSelect() {
-            document.getElementById('teamSelectScreen').style.display = 'flex';
-        }
-
+        function showTeamSelect() { document.getElementById('teamSelectScreen').style.display = 'flex'; }
+        
         function selectTeam(teamNum) {
             currentTeamNum = teamNum;
             document.getElementById('teamSelectScreen').style.display = 'none';
@@ -360,18 +392,20 @@
             
             blockGameIcon.classList.remove('active');
             fortressGameIcon.classList.remove('active');
+            meteorGameIcon.classList.remove('active');
 
             let blockIndex = -1;
             let fortressIndex = -1;
+            let meteorIndex = -1;
 
             for (let i = 0; i < BINGO_SIZE; i++) {
                 const mission = currentLayout[i];
                 if (mission.id === "KEY_BLOCK") blockIndex = i;
                 if (mission.id === "KEY_FORTRESS") fortressIndex = i;
+                if (mission.id === "KEY_METEOR") meteorIndex = i;
 
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                
                 const span = document.createElement('span');
                 span.innerText = mission.keyword;
                 cell.appendChild(span);
@@ -401,9 +435,9 @@
                 }
             }
 
-            // 조건 획득 상태 평가
             if (blockIndex !== -1 && teamRecord[blockIndex]) blockGameIcon.classList.add('active'); 
             if (fortressIndex !== -1 && teamRecord[fortressIndex]) fortressGameIcon.classList.add('active'); 
+            if (meteorIndex !== -1 && teamRecord[meteorIndex]) meteorGameIcon.classList.add('active'); 
         }
 
         function openUploadModal(index) {
@@ -444,25 +478,23 @@
                         const MAX_SIZE = 800;
                         let width = img.width, height = img.height;
 
-                        if (width > height) {
-                            if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-                        } else {
-                            if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                        }
+                        if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                        else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                         
                         canvas.width = width; canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         
                         const base64String = canvas.toDataURL('image/jpeg', 0.8);
                         const currentData = loadData();
-                        
                         const previousBingoCount = countBingoLines(currentData);
                         
-                        // 현재 배치도에서의 핵심 미션 인덱스 파악
                         const bIdx = currentLayout.findIndex(m => m.id === "KEY_BLOCK");
                         const fIdx = currentLayout.findIndex(m => m.id === "KEY_FORTRESS");
+                        const mIdx = currentLayout.findIndex(m => m.id === "KEY_METEOR");
+                        
                         const wasBlockUnlocked = (bIdx !== -1 && currentData[bIdx]);
                         const wasFortressUnlocked = (fIdx !== -1 && currentData[fIdx]);
+                        const wasMeteorUnlocked = (mIdx !== -1 && currentData[mIdx]);
                         
                         currentData[currentCellIndex] = base64String;
                         const newBingoCount = countBingoLines(currentData);
@@ -476,6 +508,8 @@
                             alert("'블록 깨기 게임'을 획득했습니다!");
                         } else if (currentCellIndex === fIdx && !wasFortressUnlocked) {
                             alert("'포트리스 게임'을 획득했습니다!");
+                        } else if (currentCellIndex === mIdx && !wasMeteorUnlocked) {
+                            alert("'운석 피하기 게임'을 획득했습니다!");
                         } else if (newBingoCount >= 3 && previousBingoCount < 3) {
                             document.getElementById('bingoCelebration').style.display = 'flex';
                         } else {
@@ -506,10 +540,8 @@
             bx = bCanvas.width / 2; by = bCanvas.height - 30; bdx = 3; bdy = -3; paddleX = (bCanvas.width - paddleW) / 2; bScore = 0; bricks = [];
             for(let c=0; c<cCount; c++) { bricks[c] = []; for(let r=0; r<rCount; r++) bricks[c][r] = { x: 0, y: 0, status: 1 }; }
         }
-
         function blockMouseMove(e) { let rX = e.clientX - bCanvas.getBoundingClientRect().left; if(rX > 0 && rX < bCanvas.width) paddleX = rX - paddleW/2; }
         function blockTouchMove(e) { e.preventDefault(); let rX = e.touches[0].clientX - bCanvas.getBoundingClientRect().left; if(rX > 0 && rX < bCanvas.width) paddleX = rX - paddleW/2; }
-
         function blockCollision() {
             for(let c=0; c<cCount; c++) {
                 for(let r=0; r<rCount; r++) {
@@ -517,16 +549,12 @@
                     if(b.status === 1) {
                         if(bx > b.x && bx < b.x+brW && by > b.y && by < b.y+brH) {
                             bdy = -bdy; b.status = 0; bScore++; playSound('break'); 
-                            if(bScore === rCount*cCount) {
-                                alert("모든 블록을 파괴했습니다! 게임 클리어!");
-                                isBlockGameRunning = false; initBlockGame();
-                            }
+                            if(bScore === rCount*cCount) { alert("모든 블록을 파괴했습니다! 게임 클리어!"); isBlockGameRunning = false; initBlockGame(); }
                         }
                     }
                 }
             }
         }
-
         function drawBlockGame() {
             if (!isBlockGameRunning) return;
             bCtx.clearRect(0, 0, bCanvas.width, bCanvas.height);
@@ -542,130 +570,86 @@
             bCtx.beginPath(); bCtx.arc(bx, by, bRadius, 0, Math.PI*2); bCtx.fillStyle = "#ff8a80"; bCtx.fill(); bCtx.closePath();
             bCtx.beginPath(); bCtx.rect(paddleX, bCanvas.height - paddleH, paddleW, paddleH); bCtx.fillStyle = "#1976d2"; bCtx.fill(); bCtx.closePath();
             bCtx.font = "16px Jua"; bCtx.fillStyle = "#5d4037"; bCtx.fillText("점수: " + bScore, 8, 20);
-            
             blockCollision();
-
             if(bx + bdx > bCanvas.width - bRadius || bx + bdx < bRadius) { bdx = -bdx; playSound('bounce'); }
             if(by + bdy < bRadius) { bdy = -bdy; playSound('bounce'); } 
             else if(by + bdy > bCanvas.height - bRadius) {
                 if(bx > paddleX && bx < paddleX + paddleW) { bdy = -bdy; playSound('bounce'); } 
                 else { alert("GAME OVER"); isBlockGameRunning = false; initBlockGame(); }
             }
-
             bx += bdx; by += bdy;
             if (isBlockGameRunning) bAnimFrame = requestAnimationFrame(drawBlockGame);
         }
-
         function openBlockGame() {
             bCanvas.addEventListener("mousemove", blockMouseMove); bCanvas.addEventListener("touchmove", blockTouchMove, { passive: false });
             if (!audioCtx) audioCtx = new AudioContext();
             blockGameModal.style.display = 'flex';
             if (!isBlockGameRunning) { initBlockGame(); isBlockGameRunning = true; drawBlockGame(); }
         }
-
         function closeBlockGame() {
             blockGameModal.style.display = 'none'; isBlockGameRunning = false; cancelAnimationFrame(bAnimFrame);
             bCanvas.removeEventListener("mousemove", blockMouseMove); bCanvas.removeEventListener("touchmove", blockTouchMove);
         }
 
         /* ==========================================
-           포트리스 게임 로직 (무작위 표적 갱신 적용)
+           포트리스 게임 로직
            ========================================== */
         const fortressModal = document.getElementById('fortressGameModal');
         const fCanvas = document.getElementById('fortressCanvas');
         const fCtx = fCanvas.getContext('2d');
         let fAnimFrame, isFortressRunning = false;
-
         let cannonAngle = 45, power = 0, isCharging = false;
         let bullet = { active: false, x: 0, y: 0, vx: 0, vy: 0 };
         const gravity = 0.2;
         let target = { x: 260, y: 250, w: 40, h: 40 };
 
-        // 표적 무작위 생성 (크기 및 공중 배치)
         function randomizeTarget() {
-            target.w = Math.floor(Math.random() * 30 + 20); // 크기 20px ~ 50px
-            target.h = target.w; // 정사각형 유지
-            // 화면 우측 절반 범위(120px ~ 가로끝)에서 생성되도록 X축 설정
+            target.w = Math.floor(Math.random() * 30 + 20); target.h = target.w;
             target.x = 120 + Math.floor(Math.random() * (fCanvas.width - 120 - target.w));
-            // 바닥(290) 위로 공중 배치 허용 (Y축 50px ~ 바닥 사이)
             target.y = 50 + Math.floor(Math.random() * (290 - target.h - 50)); 
         }
 
         function drawFortress() {
             if (!isFortressRunning) return;
             fCtx.clearRect(0, 0, fCanvas.width, fCanvas.height);
-            
             fCtx.fillStyle = "#8d6e63"; fCtx.fillRect(0, 290, fCanvas.width, 10);
             fCtx.fillStyle = "#ffb300"; fCtx.fillRect(target.x, target.y, target.w, target.h);
-            
-            fCtx.save();
-            fCtx.translate(30, 290);
-            fCtx.rotate(-cannonAngle * Math.PI / 180);
-            fCtx.fillStyle = "#37474f"; fCtx.fillRect(0, -5, 30, 10); 
-            fCtx.restore();
-            
-            fCtx.beginPath(); fCtx.arc(30, 290, 15, 0, Math.PI, true); 
-            fCtx.fillStyle = "#546e7a"; fCtx.fill();
-
+            fCtx.save(); fCtx.translate(30, 290); fCtx.rotate(-cannonAngle * Math.PI / 180);
+            fCtx.fillStyle = "#37474f"; fCtx.fillRect(0, -5, 30, 10); fCtx.restore();
+            fCtx.beginPath(); fCtx.arc(30, 290, 15, 0, Math.PI, true); fCtx.fillStyle = "#546e7a"; fCtx.fill();
             fCtx.fillStyle = "#e0e0e0"; fCtx.fillRect(10, 10, 100, 10);
             fCtx.fillStyle = "#d32f2f"; fCtx.fillRect(10, 10, (power / 30) * 100, 10);
-            
             fCtx.font = "14px Jua"; fCtx.fillStyle = "#5d4037";
-            fCtx.fillText(`각도: ${Math.floor(cannonAngle)}°`, 10, 35);
-            fCtx.fillText(`파워: ${Math.floor(power)}`, 10, 55);
+            fCtx.fillText(`각도: ${Math.floor(cannonAngle)}°`, 10, 35); fCtx.fillText(`파워: ${Math.floor(power)}`, 10, 55);
 
             if (bullet.active) {
-                fCtx.beginPath(); fCtx.arc(bullet.x, bullet.y, 4, 0, Math.PI*2);
-                fCtx.fillStyle = "#d32f2f"; fCtx.fill();
-                
+                fCtx.beginPath(); fCtx.arc(bullet.x, bullet.y, 4, 0, Math.PI*2); fCtx.fillStyle = "#d32f2f"; fCtx.fill();
                 bullet.x += bullet.vx; bullet.y += bullet.vy; bullet.vy += gravity; 
-
-                if (bullet.x > target.x && bullet.x < target.x + target.w &&
-                    bullet.y > target.y && bullet.y < target.y + target.h) {
-                    playSound('break');
-                    alert("명중했습니다! 타겟 파괴 성공!");
-                    bullet.active = false;
-                    randomizeTarget(); // 명중 시 새로운 무작위 표적 생성
+                if (bullet.x > target.x && bullet.x < target.x + target.w && bullet.y > target.y && bullet.y < target.y + target.h) {
+                    playSound('break'); alert("명중했습니다! 타겟 파괴 성공!");
+                    bullet.active = false; randomizeTarget();
                 }
-
                 if (bullet.y > 290 || bullet.x > fCanvas.width) bullet.active = false;
             } else if (isCharging) {
-                power += 0.5;
-                if (power > 30) power = 30; 
+                power += 0.5; if (power > 30) power = 30; 
             }
-
             if (isFortressRunning) fAnimFrame = requestAnimationFrame(drawFortress);
         }
 
         function updateCannonAngle(clientX, clientY) {
             const rect = fCanvas.getBoundingClientRect();
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-            const dx = x - 30; const dy = 290 - y; 
+            const dx = (clientX - rect.left) - 30; const dy = 290 - (clientY - rect.top); 
             let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            if (angle > 90) angle = 90;
-            if (angle < 0) angle = 0;
+            if (angle > 90) angle = 90; if (angle < 0) angle = 0;
             cannonAngle = angle;
         }
 
-        function handlePointerMove(e) {
-            e.preventDefault(); 
-            let clientX, clientY;
-            if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } 
-            else { clientX = e.clientX; clientY = e.clientY; }
-            updateCannonAngle(clientX, clientY);
-        }
-
-        function handlePointerDown(e) {
-            e.preventDefault(); handlePointerMove(e);
-            if (!bullet.active) { isCharging = true; power = 0; }
-        }
-
-        function handlePointerUp(e) {
+        function fPointerMove(e) { e.preventDefault(); let clientX, clientY; if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; } updateCannonAngle(clientX, clientY); }
+        function fPointerDown(e) { e.preventDefault(); fPointerMove(e); if (!bullet.active) { isCharging = true; power = 0; } }
+        function fPointerUp(e) {
             e.preventDefault();
             if (isCharging && !bullet.active) {
-                isCharging = false; playSound('shoot');
-                bullet.active = true;
+                isCharging = false; playSound('shoot'); bullet.active = true;
                 bullet.x = 30 + Math.cos(cannonAngle * Math.PI / 180) * 30; bullet.y = 290 - Math.sin(cannonAngle * Math.PI / 180) * 30;
                 bullet.vx = Math.cos(cannonAngle * Math.PI / 180) * (power / 2); bullet.vy = -Math.sin(cannonAngle * Math.PI / 180) * (power / 2);
                 power = 0;
@@ -674,27 +658,142 @@
 
         function openFortressGame() {
             if (!audioCtx) audioCtx = new AudioContext();
-            
-            fCanvas.addEventListener("mousedown", handlePointerDown); fCanvas.addEventListener("mousemove", handlePointerMove);
-            fCanvas.addEventListener("mouseup", handlePointerUp); fCanvas.addEventListener("mouseleave", handlePointerUp);
-            fCanvas.addEventListener("touchstart", handlePointerDown, { passive: false }); fCanvas.addEventListener("touchmove", handlePointerMove, { passive: false });
-            fCanvas.addEventListener("touchend", handlePointerUp, { passive: false });
-            
+            fCanvas.addEventListener("mousedown", fPointerDown); fCanvas.addEventListener("mousemove", fPointerMove); fCanvas.addEventListener("mouseup", fPointerUp); fCanvas.addEventListener("mouseleave", fPointerUp);
+            fCanvas.addEventListener("touchstart", fPointerDown, { passive: false }); fCanvas.addEventListener("touchmove", fPointerMove, { passive: false }); fCanvas.addEventListener("touchend", fPointerUp, { passive: false });
             fortressModal.style.display = 'flex';
-            if (!isFortressRunning) {
-                isFortressRunning = true; bullet.active = false; power = 0;
-                randomizeTarget(); // 최초 진입 시 무작위 생성
-                drawFortress();
+            if (!isFortressRunning) { isFortressRunning = true; bullet.active = false; power = 0; randomizeTarget(); drawFortress(); }
+        }
+        function closeFortressGame() {
+            fortressModal.style.display = 'none'; isFortressRunning = false; cancelAnimationFrame(fAnimFrame);
+            fCanvas.removeEventListener("mousedown", fPointerDown); fCanvas.removeEventListener("mousemove", fPointerMove); fCanvas.removeEventListener("mouseup", fPointerUp); fCanvas.removeEventListener("mouseleave", fPointerUp);
+            fCanvas.removeEventListener("touchstart", fPointerDown); fCanvas.removeEventListener("touchmove", fPointerMove); fCanvas.removeEventListener("touchend", fPointerUp);
+        }
+
+        /* ==========================================
+           운석 피하기 게임 로직 
+           ========================================== */
+        const meteorModal = document.getElementById('meteorGameModal');
+        const mCanvas = document.getElementById('meteorCanvas');
+        const mCtx = mCanvas.getContext('2d');
+        let mAnimFrame, isMeteorRunning = false;
+
+        let player = { x: 0, y: 0, w: 30, h: 30 };
+        let meteors = [];
+        let mScore = 0;
+        let mFrameCount = 0;
+
+        function initMeteorGame() {
+            player.x = (mCanvas.width - player.w) / 2;
+            player.y = mCanvas.height - player.h - 10;
+            meteors = [];
+            mScore = 0;
+            mFrameCount = 0;
+        }
+
+        function mPointerMove(e) {
+            e.preventDefault();
+            let clientX;
+            if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; } 
+            else { clientX = e.clientX; }
+            let rX = clientX - mCanvas.getBoundingClientRect().left;
+            if(rX > 0 && rX < mCanvas.width) player.x = rX - player.w / 2;
+        }
+
+        function checkMeteorCollision() {
+            for (let i = 0; i < meteors.length; i++) {
+                let m = meteors[i];
+                let closestX = Math.max(player.x, Math.min(m.x, player.x + player.w));
+                let closestY = Math.max(player.y, Math.min(m.y, player.y + player.h));
+                let distanceX = m.x - closestX;
+                let distanceY = m.y - closestY;
+                let distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+                
+                if (distanceSquared < (m.radius * m.radius)) {
+                    playSound('explosion');
+                    alert(`게임 오버! 피한 운석 수: ${mScore}`);
+                    isMeteorRunning = false;
+                    initMeteorGame();
+                    return;
+                }
             }
         }
 
-        function closeFortressGame() {
-            fortressModal.style.display = 'none'; isFortressRunning = false; cancelAnimationFrame(fAnimFrame);
-            fCanvas.removeEventListener("mousedown", handlePointerDown); fCanvas.removeEventListener("mousemove", handlePointerMove);
-            fCanvas.removeEventListener("mouseup", handlePointerUp); fCanvas.removeEventListener("mouseleave", handlePointerUp);
-            fCanvas.removeEventListener("touchstart", handlePointerDown); fCanvas.removeEventListener("touchmove", handlePointerMove); fCanvas.removeEventListener("touchend", handlePointerUp);
+        function drawPlayerPerson(ctx, x, y, w, h) {
+            ctx.beginPath();
+            let headR = w * 0.2;
+            let headX = x + w / 2;
+            let headY = y + headR + 2; 
+            ctx.arc(headX, headY, headR, 0, Math.PI * 2);
+            
+            let bodyTopY = headY + headR;
+            let bodyBottomY = y + h * 0.75;
+            ctx.moveTo(headX, bodyTopY);
+            ctx.lineTo(headX, bodyBottomY);
+            
+            let armY = bodyTopY + (bodyBottomY - bodyTopY) * 0.4;
+            ctx.moveTo(x + w * 0.1, armY);
+            ctx.lineTo(x + w * 0.9, armY);
+            
+            ctx.moveTo(headX, bodyBottomY);
+            ctx.lineTo(x + w * 0.15, y + h - 2); 
+            ctx.moveTo(headX, bodyBottomY);
+            ctx.lineTo(x + w * 0.85, y + h - 2); 
+            
+            ctx.strokeStyle = "#4fc3f7"; 
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.closePath();
         }
 
+        function drawMeteor() {
+            if (!isMeteorRunning) return;
+            mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+            mFrameCount++;
+
+            if (mFrameCount % 30 === 0) {
+                meteors.push({
+                    x: Math.random() * mCanvas.width,
+                    y: -20,
+                    radius: Math.random() * 10 + 5,
+                    speed: Math.random() * 3 + 2
+                });
+            }
+
+            drawPlayerPerson(mCtx, player.x, player.y, player.w, player.h);
+
+            mCtx.fillStyle = "#ffb74d";
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                let m = meteors[i];
+                m.y += m.speed;
+                mCtx.beginPath();
+                mCtx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+                mCtx.fill();
+                if (m.y - m.radius > mCanvas.height) { meteors.splice(i, 1); mScore++; }
+            }
+
+            mCtx.font = "16px Jua"; mCtx.fillStyle = "#ffffff";
+            mCtx.fillText(`점수: ${mScore}`, 10, 20);
+
+            checkMeteorCollision();
+
+            if (isMeteorRunning) mAnimFrame = requestAnimationFrame(drawMeteor);
+        }
+
+        function openMeteorGame() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            mCanvas.addEventListener("mousemove", mPointerMove);
+            mCanvas.addEventListener("touchmove", mPointerMove, { passive: false });
+            
+            meteorModal.style.display = 'flex';
+            if (!isMeteorRunning) { initMeteorGame(); isMeteorRunning = true; drawMeteor(); }
+        }
+
+        function closeMeteorGame() {
+            meteorModal.style.display = 'none'; isMeteorRunning = false; cancelAnimationFrame(mAnimFrame);
+            mCanvas.removeEventListener("mousemove", mPointerMove); mCanvas.removeEventListener("touchmove", mPointerMove);
+        }
+
+        showTeamSelect();
     </script>
 </body>
 </html>
